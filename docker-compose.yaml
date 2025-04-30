@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  user-db:
+    image: postgres:16.3-alpine
+    container_name: user-db
+    environment:
+      POSTGRES_USER: postgresuser
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: user-db
+    ports:
+      - "5432:5432"
+    volumes:
+      - user-db-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  finance-db:
+    image: postgres:16.3-alpine
+    container_name: finance-db
+    environment:
+      POSTGRES_USER: postgresuser
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: finance-db
+    ports:
+      - "5433:5432"
+    volumes:
+      - finance-db-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  user-service:
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
+    container_name: user-service
+    ports:
+      - "8081:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://user-db:5432/user-db
+      SPRING_DATASOURCE_USERNAME: postgresuser
+      SPRING_DATASOURCE_PASSWORD: postgrespassword
+    depends_on:
+      - user-db
+    networks:
+      - app-network
+
+  finance-service:
+    build:
+      context: ./finance
+      dockerfile: Dockerfile
+    container_name: finance-service
+    ports:
+      - "8082:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://finance-db:5432/finance-db
+      SPRING_DATASOURCE_USERNAME: postgresuser
+      SPRING_DATASOURCE_PASSWORD: postgrespassword
+    depends_on:
+      - finance-db
+    networks:
+      - app-network
+
+  apollo-router:
+    image: ghcr.io/apollographql/router:v1.44.0
+    container_name: apollo-router
+    volumes:
+      - ./supergraph.graphql:/dist/schema/supergraph.graphql
+      - ./router.yaml:/dist/config/router.yaml
+    command: [ "--dev", "-c", "config/router.yaml", "-s", "schema/supergraph.graphql", "--log", "info" ]
+    ports:
+      - "4000:4000"
+    depends_on:
+      - user-service
+      - finance-service
+    networks:
+      - app-network
+
+volumes:
+  user-db-data:
+  finance-db-data:
+
+networks:
+  app-network:

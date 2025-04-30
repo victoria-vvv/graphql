@@ -1,0 +1,235 @@
+schema
+  @link(url: "https://specs.apollo.dev/link/v1.0")
+  @link(url: "https://specs.apollo.dev/join/v0.3", for: EXECUTION)
+{
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}
+
+directive @join__enumValue(graph: join__Graph!) repeatable on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, usedOverridden: Boolean) repeatable on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+
+directive @join__type(graph: join__Graph!, key: join__FieldSet, extension: Boolean! = false, resolvable: Boolean! = true, isInterfaceObject: Boolean! = false) repeatable on OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT | SCALAR
+
+directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+
+directive @link(url: String, as: String, for: link__Purpose, import: [link__Import]) repeatable on SCHEMA
+
+type Account implements Node
+  @join__implements(graph: FINANCE, interface: "Node")
+  @join__type(graph: FINANCE, key: "id")
+{
+  id: ID!
+  userId: ID!
+  accountType: String!
+  currency: String!
+  balance: BigDecimal!
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input AccountInput
+  @join__type(graph: FINANCE)
+{
+  userId: ID!
+  accountType: String!
+  currency: String!
+}
+
+type AccountsWithBalances
+  @join__type(graph: FINANCE)
+{
+  accountId: String!
+  balance: BigDecimal!
+}
+
+scalar BigDecimal
+  @join__type(graph: FINANCE)
+
+scalar Date
+  @join__type(graph: FINANCE)
+
+scalar DateTime
+  @join__type(graph: FINANCE)
+  @join__type(graph: USER)
+
+type ExchangeRate implements Node
+  @join__implements(graph: FINANCE, interface: "Node")
+  @join__type(graph: FINANCE, key: "id")
+{
+  id: ID!
+  baseCurrency: String
+  targetCurrency: String
+  rate: Float
+  rateDate: Date
+}
+
+input ExchangeRateInput
+  @join__type(graph: FINANCE)
+{
+  baseCurrency: String
+  targetCurrency: String
+  rate: Float
+}
+
+type Investment implements Node
+  @join__implements(graph: FINANCE, interface: "Node")
+  @join__type(graph: FINANCE, key: "id")
+{
+  id: ID!
+  userId: ID!
+  investmentType: String
+  amount: BigDecimal
+  startDate: Date
+  expirationDate: Date
+  interestRate: Float
+  status: String
+  createdAt: DateTime
+}
+
+scalar join__FieldSet
+
+enum join__Graph {
+  FINANCE @join__graph(name: "finance", url: "http://finance-service:8082/graphql")
+  USER @join__graph(name: "user", url: "http://user-service:8081/graphql")
+}
+
+scalar link__Import
+
+enum link__Purpose {
+  """
+  `SECURITY` features provide metadata necessary to securely resolve fields.
+  """
+  SECURITY
+
+  """
+  `EXECUTION` features provide metadata necessary for operation execution.
+  """
+  EXECUTION
+}
+
+type Loan implements Node
+  @join__implements(graph: FINANCE, interface: "Node")
+  @join__type(graph: FINANCE, key: "id")
+{
+  id: ID!
+  userId: ID!
+  principalAmount: BigDecimal
+  interestRate: Float
+  startDate: Date
+  endDate: Date
+  status: String
+  createdAt: DateTime
+}
+
+type LoanPayment implements Node
+  @join__implements(graph: FINANCE, interface: "Node")
+  @join__type(graph: FINANCE, key: "id")
+{
+  id: ID!
+  loanId: ID!
+  userId: ID!
+  paymentDate: Date
+  amount: BigDecimal
+  createdAt: DateTime
+}
+
+type Mutation
+  @join__type(graph: FINANCE)
+  @join__type(graph: USER)
+{
+  makeLoanPayment(loanId: ID!, amount: BigDecimal!): LoanPayment @join__field(graph: FINANCE)
+  createExchangeRate(input: ExchangeRateInput!): ExchangeRate @join__field(graph: FINANCE)
+  createAccount(input: AccountInput!): Account @join__field(graph: FINANCE)
+  createTransaction(input: TransactionInput): Transaction @join__field(graph: FINANCE)
+  updateUserProfile(input: UserProfileInput!): UserProfile @join__field(graph: USER)
+}
+
+interface Node
+  @join__type(graph: FINANCE, resolvable: false)
+  @join__type(graph: USER)
+{
+  id: ID!
+}
+
+type Query
+  @join__type(graph: FINANCE)
+  @join__type(graph: USER)
+{
+  getHistoricalExchangeRates(baseCurrency: String!, targetCurrency: String!, startDate: Date!, endDate: Date!): [ExchangeRate] @join__field(graph: FINANCE)
+  getTransactionsInPeriodByCategories(startDate: Date!, endDate: Date!, category: String!): [Transaction] @join__field(graph: FINANCE)
+  getAverageSpendingByPeriod(period: String!, transactionType: String): BigDecimal @join__field(graph: FINANCE)
+  getActiveInvestments: [Investment] @join__field(graph: FINANCE)
+  getAccountsWithBalances(userId: ID!): [AccountsWithBalances] @join__field(graph: FINANCE)
+  getTransactionsOnPageByFilter(accountId: ID!, page: Int!, size: Int!, createdDate: Date!, category: String!): [Transaction] @join__field(graph: FINANCE)
+  getUserProfile(id: ID!): UserProfile @join__field(graph: USER)
+  node(id: ID!): Node @join__field(graph: USER, graph: FINANCE)
+}
+
+type Subscription
+  @join__type(graph: FINANCE)
+{
+  subscribeToCurrencyRateChanges(baseCurrency: String!): ExchangeRate
+  subscribeToTransactionCreated(accountId: ID!): Transaction
+}
+
+type Transaction implements Node
+  @join__implements(graph: FINANCE, interface: "Node")
+  @join__type(graph: FINANCE, key: "id")
+{
+  id: ID!
+  accountId: ID!
+  amount: BigDecimal
+  transactionType: String
+  category: String
+  description: String
+  transactionDate: Date
+  createdAt: DateTime
+}
+
+input TransactionInput
+  @join__type(graph: FINANCE)
+{
+  accountId: ID!
+  amount: BigDecimal!
+  transactionType: String!
+  category: String!
+  description: String
+}
+
+type UserProfile implements Node
+  @join__implements(graph: USER, interface: "Node")
+@join__type(graph: USER, key: "id")
+  @join__type(graph: FINANCE, key: "id", extension: true, , resolvable: false)
+{
+  id: ID!
+  accounts: [Account] @join__field(graph: FINANCE)
+  loans: [Loan] @join__field(graph: FINANCE)
+  investments: [Investment] @join__field(graph: FINANCE)
+  loanPayments: [LoanPayment] @join__field(graph: FINANCE)
+  firstName: String @join__field(graph: USER)
+  lastName: String @join__field(graph: USER)
+  email: String @join__field(graph: USER)
+  passwordHash: String @join__field(graph: USER)
+  language: String @join__field(graph: USER)
+  notification: Boolean @join__field(graph: USER)
+  createdAt: DateTime @join__field(graph: USER)
+  updatedAt: DateTime @join__field(graph: USER)
+}
+
+input UserProfileInput
+  @join__type(graph: USER)
+{
+  id: String
+  firstName: String
+  lastName: String
+  email: String
+  language: String
+  notification: Boolean
+}

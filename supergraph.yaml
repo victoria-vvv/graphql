@@ -1,0 +1,9 @@
+subgraphs:
+  user:
+    routing_url: http://user-service:8081/graphql
+    schema:
+      file: ../user-service/src/main/resources/graphql/userProfileSchema.graphql
+  finance:
+    routing_url: http://finance-service:8082/graphql
+    schema:
+      file: ../finance/src/main/resources/graphql/financeSchema.graphql

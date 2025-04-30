@@ -1,0 +1,38 @@
+extend schema @link(
+    url: "https://specs.apollo.dev/federation/v2.3",
+    import: ["@key"]
+)
+scalar DateTime
+
+interface Node {
+    id: ID!
+}
+
+type UserProfile implements Node @key(fields: "id") {
+    id: ID!
+    firstName: String
+    lastName: String
+    email: String
+    passwordHash: String
+    language: String
+    notification: Boolean
+    createdAt: DateTime
+    updatedAt: DateTime
+}
+
+input UserProfileInput {
+    id: String
+    firstName: String
+    lastName: String
+    email: String
+    language: String
+    notification: Boolean
+}
+
+type Query {
+    getUserProfile(id: ID!): UserProfile
+    node(id: ID!): Node
+}
+type Mutation {
+    updateUserProfile(input: UserProfileInput!): UserProfile
+}
