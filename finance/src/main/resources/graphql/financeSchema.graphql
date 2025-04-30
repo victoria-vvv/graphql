@@ -1,0 +1,128 @@
+extend schema @link(
+    url: "https://specs.apollo.dev/federation/v2.3",
+    import: ["@key", "@external", "@extends"]
+)
+
+scalar Date
+scalar BigDecimal
+scalar DateTime
+
+interface Node {
+    id: ID!
+}
+
+type UserProfile @extends @key(fields: "id"){
+    id: ID! @external
+    accounts: [Account]
+    loans: [Loan]
+    investments: [Investment]
+    loanPayments: [LoanPayment]
+}
+
+type Account implements Node @key(fields: "id") {
+    id: ID!
+    userId: ID!
+    accountType: String!
+    currency: String!
+    balance: BigDecimal!
+    createdAt: DateTime
+    updatedAt: DateTime
+}
+
+type Transaction implements Node @key(fields: "id") {
+    id: ID!
+    accountId: ID!
+    amount: BigDecimal
+    transactionType: String
+    category: String
+    description: String
+    transactionDate: Date
+    createdAt: DateTime
+}
+
+type Investment implements Node @key(fields: "id") {
+    id: ID!
+    userId: ID!
+    investmentType: String
+    amount: BigDecimal
+    startDate: Date
+    expirationDate: Date
+    interestRate: Float
+    status: String
+    createdAt: DateTime
+}
+
+type Loan implements Node @key(fields: "id") {
+    id: ID!
+    userId: ID!
+    principalAmount: BigDecimal
+    interestRate: Float
+    startDate: Date
+    endDate: Date
+    status: String
+    createdAt: DateTime
+}
+
+type LoanPayment implements Node @key(fields: "id") {
+    id: ID!
+    loanId: ID!
+    userId: ID!
+    paymentDate: Date
+    amount: BigDecimal
+    createdAt: DateTime
+}
+
+type ExchangeRate implements Node @key(fields: "id") {
+    id: ID!
+    baseCurrency: String
+    targetCurrency: String
+    rate: Float
+    rateDate: Date
+}
+
+type AccountsWithBalances {
+    accountId: String!
+    balance: BigDecimal!
+}
+
+input ExchangeRateInput {
+    baseCurrency: String
+    targetCurrency: String
+    rate: Float
+}
+
+input AccountInput {
+    userId: ID!
+    accountType: String!
+    currency: String!
+}
+
+input TransactionInput {
+    accountId: ID!
+    amount: BigDecimal!
+    transactionType: String!
+    category: String!
+    description: String
+}
+
+type Query {
+    getHistoricalExchangeRates(baseCurrency: String!, targetCurrency: String!, startDate: Date!, endDate: Date!): [ExchangeRate]
+    getTransactionsInPeriodByCategories(startDate: Date!, endDate: Date!, category: String!): [Transaction]
+    getAverageSpendingByPeriod(period: String!, transactionType: String): BigDecimal
+    getActiveInvestments: [Investment]
+    getAccountsWithBalances(userId: ID!): [AccountsWithBalances]
+    getTransactionsOnPageByFilter(accountId: ID!, page: Int!, size: Int!, createdDate: Date!, category: String!): [Transaction]
+    node(id: ID!): Node
+}
+
+type Mutation {
+    makeLoanPayment(loanId: ID!, amount: BigDecimal!): LoanPayment
+    createExchangeRate(input: ExchangeRateInput!): ExchangeRate
+    createAccount(input: AccountInput!): Account
+    createTransaction(input: TransactionInput): Transaction
+}
+
+type Subscription {
+    subscribeToCurrencyRateChanges(baseCurrency: String!): ExchangeRate
+    subscribeToTransactionCreated(accountId: ID!): Transaction
+}

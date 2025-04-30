@@ -1,0 +1,24 @@
+spring:
+  application:
+   name: finance
+
+  r2dbc:
+    url: r2dbc:postgresql://finance-db:5432/finance-db
+    username: postgresuser
+    password: postgrespassword
+
+  flyway:
+    locations: classpath:db/migration
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://finance-db:5432/finance-db
+    user: postgresuser
+    password: postgrespassword
+
+  jooq:
+    sql-dialect: postgres
+
+  graphql:
+    path: /graphql
+
+server:
+  port: 8082
